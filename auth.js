@@ -5,7 +5,7 @@ dotenv.config();
 
 // Token creation
 module.exports.createAccessToken = (user) => {
-	// We are not going to contain all the information of our user in our Token that will be generated.
+
 	const data = {
 		id: user._id,
 		email: user.email,

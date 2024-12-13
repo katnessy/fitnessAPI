@@ -10,12 +10,5 @@ router.post("/login", userController.loginUser);
 router.get("/details", verify, userController.getProfile);
 
 
-router.get("/success", isLoggedIn, (req, res) => {
-	console.log("You are logged in");
-	console.log(req.user);
-	res.send(`Welcome ${req.user.displayName}`);
-})
-
-
 // Export the router
 module.exports = router;

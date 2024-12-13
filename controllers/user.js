@@ -1,5 +1,5 @@
 const User = require("../models/User.js");
-const Enrollment = require("../models/Workout.js");
+const Workout = require("../models/Workout.js");
 const bcrypt = require("bcryptjs");
 const { createAccessToken, errorHandler } = require("../auth.js")
 

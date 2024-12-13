@@ -4,8 +4,6 @@ const dotenv = require("dotenv");
 const mongoose = require("mongoose");
 const cors = require("cors");
 
-const session = require("express-session");
-
 const userRoutes = require("./routes/user.js");
 const workoutRoutes = require("./routes/workout.js");
 
@@ -25,6 +23,8 @@ let db = mongoose.connection;
 db.on("error", console.error.bind(console, "Connection Error!"));
 db.once("open", () => console.log("Now connected to MongoDB Atlas."));
 
+
+
 // Middlewares
 app.use(express.json());
 app.use(express.urlencoded({extended: true}));
@@ -36,6 +36,7 @@ const corsOptions = {
 }
 
 app.use(cors(corsOptions));
+
 
 // Backend route for the users request:
 app.use("/users", userRoutes);

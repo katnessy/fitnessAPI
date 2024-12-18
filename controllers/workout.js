@@ -1,104 +1,110 @@
-const Workout = require("../models/Workout.js");
-const bcrypt = require("bcryptjs");
+const express = require("express");
+const Workout = require("../models/Workout.js")
+const { errorHandler } = require('../auth.js')
 
-const { errorHandler } = require("../auth.js")
 
 
 module.exports.addWorkout = (req, res) => {
-  const newWorkout = new Workout({
-    name: req.body.name,
-    duration: req.body.duration,
-    status: req.body.status || "pending", 
-  });
+    let newWorkout = new Workout({
+        userId : req.user.id,
+        name : req.body.name,
+        duration : req.body.duration,
+    });
 
-  newWorkout
-    .save()
-    .then((result) => {
-      return res.status(201).send({
-        userId: result._id,
-        name: result.name,
-        duration: result.duration,
-        status: result.status,
-        _id: result._id,
-        dateAdded: result.createdAt, 
-        __v: result.__v,
-      });
+    return Workout.findOne({name: req.body.name}).then(existingWorkout => {
+
+        if(existingWorkout){
+
+            return res.status(409).send({ message:'Workout already exists' });
+        } else{
+
+            return newWorkout.save().then(result => res.status(201).send({
+                success: true,
+                message: "Workout added successfully",
+                result
+            })).catch(error => errorHandler(error, req, res));
+        }
     })
-    .catch((err) => errorHandler(err, req, res));
+    .catch(error => errorHandler(error, req, res));
+}; 
+
+module.exports.getMyWorkouts = (req, res) => {
+    return Workout.find({userId: req.user.id})
+        .then(workouts => {
+            if (workouts.length > 0) {
+                return res.status(200).send({workouts:workouts});
+            }
+            return res.status(404).send({
+                message: 'No workouts found'
+            });
+        })
+        .catch(error => errorHandler(error, req, res));
 };
 
-module.exports.getAllWorkouts = (req, res) => {
-  Workout.find({})
-    .then((workouts) => {
-      if (workouts.length === 0) {
-        return res.status(404).send({ message: "No workouts found" });
-      }
-      return res.status(200).send({ workouts });
+module.exports.updateWorkout = (req, res)=>{
+    let updatedWorkout = {
+      name: req.body.name,
+      duration: req.body.duration
+    };
+
+    return Workout.findByIdAndUpdate(req.params.workoutId, updatedWorkout, {new:true})
+    .then(workout => {
+
+        if (workout) {
+
+            return res.status(200).send({
+                message : 'Workout updated successfully',
+                updatedWorkout: workout});
+
+        } else {
+
+           return res.status(404).send({message : 'No Workout found'});
+        }
     })
-    .catch((err) => errorHandler(err, req, res));
+    .catch(error => errorHandler(error, req, res));
 };
 
-module.exports.updateWorkout = (req, res) => {
-  const workoutId = req.params.workoutId;
-  const updatedData = {
-    name: req.body.name,
-    duration: req.body.duration,
-    status: req.body.status,
-  };
 
-  Workout.findByIdAndUpdate(workoutId, updatedData, { new: true})
-    .then((updatedWorkout) => {
-      if (!updatedWorkout) {
-        return res.status(404).send({ message: "Workout not found" });
-      }
-      return res.status(200).send({
-        message: "Workout updated successfully",
-        updatedWorkout,
-      });
-    })
-    .catch((err) => errorHandler(err, req, res));
-};
 
 module.exports.deleteWorkout = (req, res) => {
-  const workoutId = req.params.workoutId;
 
-  Workout.findByIdAndDelete(workoutId)
-    .then((deletedWorkout) => {
-      if (!deletedWorkout) {
-        return res.status(404).send({ message: "Workout not found" });
-      }
-      return res.status(200).send({
-        message: "Workout deleted successfully",
-      });
-    })
-    .catch((err) => errorHandler(err, req, res));
+    return Workout.findByIdAndDelete(req.params.workoutId)
+    .then(workout => {
+        if(workout) {
+            res.status(200).send({message:"Workout deleted successfully"})
+        }else{
+            res.status(404).send({message:"Workout not found"})
+        }
+
+
+   
+
+}).catch(error => errorHandler(error, req, res));
 };
 
-module.exports.completeWorkout = (req, res) => {
-  const workoutId = req.params.workoutId;
 
-  Workout.findByIdAndUpdate(
-    workoutId,
-    { status: "completed" },
-    { new: true, runValidators: true }
-  )
-    .then((updatedWorkout) => {
-      if (!updatedWorkout) {
-        return res.status(404).send({ message: "Workout not found" });
-      }
+module.exports.completeWorkoutStatus = (req, res) => {
 
-      return res.status(200).send({
-        message: "Workout marked as completed",
-        updatedWorkout: {
-          _id: updatedWorkout._id,
-          userId: updatedWorkout._id,
-          name: updatedWorkout.name,
-          duration: updatedWorkout.duration,
-          status: updatedWorkout.status,
-          dateAdded: updatedWorkout.dateAdded,
-          __v: updatedWorkout.__v,
-        },
-      });
-    })
-    .catch((err) => errorHandler(err, req, res));
+    let completeWorkout = {
+        status: "completed"
+    };
+
+    return Workout.findById(req.params.workoutId)
+        .then(workout => {
+            if (!workout) {
+                return res.status(404).send({ message: 'Workout not found' });
+            }
+            if (workout.status === "completed") {
+                return res.status(200).send({ message: 'Workout already completed' });
+            }
+
+            return Workout.findByIdAndUpdate(req.params.workoutId, completeWorkout, { new: true })
+                .then(updatedWorkout => {
+                    res.status(200).send({
+                        message: 'Workout status updated successfully',
+                        updatedWorkout: updatedWorkout
+                    });
+                });
+        })
+        .catch(error => errorHandler(error, req, res));
 };

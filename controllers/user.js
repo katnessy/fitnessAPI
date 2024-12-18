@@ -1,65 +1,85 @@
-const User = require("../models/User.js");
-const Workout = require("../models/Workout.js");
+const express = require("express");
+const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
-const { createAccessToken, errorHandler } = require("../auth.js")
+const User = require("../models/User.js");
+const { errorHandler, createAccessToken } = require("../auth.js");
 
-// Functions for user request will be placed here
+
 module.exports.registerUser = (req, res) => {
-	let newUser = new User({
-		email: req.body.email,
-		password: bcrypt.hashSync(req.body.password, 10),
-	});
-	
-	if(!newUser.email.includes("@")){
-		return res.status(400).send({message: 'Invalid email format'});
-	}
-		
-	if(typeof req.body.password !== "string" || req.body.password.length < 8) {
-		return res.status(400).send({message: 'Password must be at least 8 characters long'});
-	}
-	
-	return newUser.save()
-	.then(result => res.status(201).send({
-		message: 'User registered successfully'	}))
-	.catch(err => errorHandler(err, req, res));
+
+    if (!req.body.email.includes("@")){
+
+        return res.status(400).send({error : 'Email invalid'});
+    }
+
+    if (req.body.password.length < 8) {
+
+        return res.status(400).send({message: 'Password must be atleast 8 characters'});
+
+    } else {
+
+        let newUser = new User({
+            firstName : req.body.firstName,
+            lastName : req.body.lastName,
+            email : req.body.email,
+            password : bcrypt.hashSync(req.body.password, 10)
+        })
+
+        return newUser.save()
+        .then((result) => res.status(201).send({message: 'Registered successfully'}))
+        .catch(error => errorHandler(error, req, res));
+    }
 };
 
 module.exports.loginUser = (req, res) => {
-	if(req.body.email.includes("@")) {
+
+	if(req.body.email.includes('@')){
+
 		return User.findOne({email: req.body.email})
 		.then(result => {
 
-			if(result === null) {
-				return res.status(404).send({message: 'No email found'});
+			if(result === null){
+
+				return res.status(404).send({error: 'No email found'});
 			}
 
-			else {
+			else{
+
 				const isPasswordCorrect = bcrypt.compareSync(req.body.password, result.password);
 
-				if(isPasswordCorrect) {
-					return res.status(200).send({
-						access: createAccessToken(result)
-					});
-				} else {
-					return res.status(401).send({message: 'Incorrect email or password'});
+				if(isPasswordCorrect){
+
+					return res.status(200).send({ access : createAccessToken(result)})
+
+				} else{
+
+					return res.status(401).send({ error: 'Email and password do not match' });
 				}
+
 			}
 		})
 		.catch(err => errorHandler(err, req, res));
-	} else {
-		return res.status(400).send({message: 'Invalid email format'});
+
+	} else{
+
+		return res.status(400).send({ message: 'Invalid email format' });
 	}
 }
 
-module.exports.getProfile = (req, res) => {
-	return User.findOne({_id: req.user.id})
-	.select("-password")
-	.then(result => {
-		if(result){
-	        return res.status(200).send({ user: result });
-		}else{
-			return res.status(404).send({message: 'User not found'});
-		}
-	})
-	.catch(err => errorHandler(err, req, res));
+module.exports.retrieveUserDetails = (req, res) => {
+
+    return User.findById(req.user.id)
+    .select('-password')
+    .then(user => {
+
+        if(!user){
+
+            return res.status(404).send({ message: 'User not found' })
+
+        } else{
+
+            return res.status(200).send({ user : user });
+        }  
+    })
+    .catch(error => errorHandler(error, req, res));
 };

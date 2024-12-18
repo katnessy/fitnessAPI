@@ -15,6 +15,9 @@ let db = mongoose.connection;
 db.on("error", console.error.bind(console, "Connection Error!"));
 db.once("open", ()=> console.log("Now connected to MongoDB Atlas."));
 
+app.get("/", (req, res) => {
+  res.send("Welcome to my backend!");
+});
 
 
 app.use(express.json());
